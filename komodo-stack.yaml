@@ -47,15 +47,15 @@ services:
         protocol: tcp
         mode: ingress
     env_file:
-      - ./compose.env
+      - ./komodo-stack.env
     environment:
       KOMODO_DATABASE_ADDRESS: mongo:27017
       KOMODO_DATABASE_USERNAME: ${KOMODO_DB_USERNAME}
       KOMODO_DATABASE_PASSWORD: ${KOMODO_DB_PASSWORD}
-    volumes:
-      - ${COMPOSE_KOMODO_BACKUPS_PATH}:/backups
-      # - /path/to/syncs:/syncs
-      # - /path/to/core.config.toml:/config/config.toml
+    #    volumes:
+    #      - ${COMPOSE_KOMODO_BACKUPS_PATH}:/backups
+    # - /path/to/syncs:/syncs
+    # - /path/to/core.config.toml:/config/config.toml
     networks:
       - komodo
       - traefik-public
@@ -69,17 +69,30 @@ services:
         order: start-first
       placement:
         max_replicas_per_node: 1
+        constraints:
+          #- node.role == manager
+          - node.hostname == polaris
+
       labels:
         - traefik.enable=true
-        - traefik.http.routers.komodo.rule=Host(`komodo.kluhan.dev`)
+
+        # HTTP → HTTPS redirect
+        - traefik.http.routers.komodo-web.entrypoints=web
+        - traefik.http.routers.komodo-web.rule=Host(`komodo.kluhan.dev`)
+        - traefik.http.routers.komodo-web.middlewares=redirect-web-to-websecure@internal
+
+        # HTTPS router
         - traefik.http.routers.komodo.entrypoints=websecure
+        - traefik.http.routers.komodo.rule=Host(`komodo.kluhan.dev`)
         - traefik.http.routers.komodo.tls=true
         - traefik.http.routers.komodo.tls.certresolver=letsencrypt
+
+        # Backend is plain HTTP on port 9120
         - traefik.http.services.komodo.loadbalancer.server.port=9120
   periphery:
     image: ghcr.io/moghtech/komodo-periphery:${COMPOSE_KOMODO_IMAGE_TAG:-latest}
     env_file:
-      - ./compose.env
+      - ./komodo-stack.env
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /proc:/proc
