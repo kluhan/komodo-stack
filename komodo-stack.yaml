@@ -89,7 +89,8 @@ services:
 
         # Backend is plain HTTP on port 9120
         - traefik.http.services.komodo.loadbalancer.server.port=9120
-  periphery:
+
+  periphery_polaris:
     image: ghcr.io/moghtech/komodo-periphery:${COMPOSE_KOMODO_IMAGE_TAG:-latest}
     env_file:
       - ./komodo-stack.env
@@ -102,7 +103,32 @@ services:
     labels:
       komodo.skip: "true"
     deploy:
-      mode: global
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == polaris
+      restart_policy:
+        condition: on-failure
+      update_config:
+        order: start-first
+
+  periphery_vega:
+    image: ghcr.io/moghtech/komodo-periphery:${COMPOSE_KOMODO_IMAGE_TAG:-latest}
+    env_file:
+      - ./komodo-stack.env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /proc:/proc
+      - ${PERIPHERY_ROOT_DIRECTORY:-/etc/komodo}:${PERIPHERY_ROOT_DIRECTORY:-/etc/komodo}
+    networks:
+      - komodo
+    labels:
+      komodo.skip: "true"
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == vega
       restart_policy:
         condition: on-failure
       update_config:
