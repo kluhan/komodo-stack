@@ -1,5 +1,12 @@
 version: "3.8"
 
+networks:
+  traefik-public:
+    external: true
+  komodo:
+    driver: overlay
+    attachable: true
+
 services:
   mongo:
     image: mongo:latest
@@ -51,6 +58,7 @@ services:
       # - /path/to/core.config.toml:/config/config.toml
     networks:
       - komodo
+      - traefik-public
     labels:
       komodo.skip: "true"
     deploy:
@@ -61,7 +69,13 @@ services:
         order: start-first
       placement:
         max_replicas_per_node: 1
-
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.komodo.rule=Host(`komodo.kluhan.dev`)
+        - traefik.http.routers.komodo.entrypoints=websecure
+        - traefik.http.routers.komodo.tls=true
+        - traefik.http.routers.komodo.tls.certresolver=letsencrypt
+        - traefik.http.services.komodo.loadbalancer.server.port=9120
   periphery:
     image: ghcr.io/moghtech/komodo-periphery:${COMPOSE_KOMODO_IMAGE_TAG:-latest}
     env_file:
@@ -80,11 +94,6 @@ services:
         condition: on-failure
       update_config:
         order: start-first
-
-networks:
-  komodo:
-    driver: overlay
-    attachable: true
 
 volumes:
   mongo-data:
