@@ -40,12 +40,7 @@ services:
         max_replicas_per_node: 1
 
   core:
-    image: ghcr.io/moghtech/komodo-core:${COMPOSE_KOMODO_IMAGE_TAG:-latest}
-    ports:
-      - target: 9120
-        published: 9120
-        protocol: tcp
-        mode: ingress
+    image: ghcr.io/moghtech/komodo-core:2-dev
     env_file:
       - ./komodo-stack.env
     environment:
@@ -65,12 +60,8 @@ services:
       replicas: 1
       restart_policy:
         condition: on-failure
-      update_config:
-        order: start-first
       placement:
-        max_replicas_per_node: 1
         constraints:
-          #- node.role == manager
           - node.hostname == polaris
 
       labels:
@@ -91,7 +82,7 @@ services:
         - traefik.http.services.komodo.loadbalancer.server.port=9120
 
   periphery_polaris:
-    image: ghcr.io/moghtech/komodo-periphery:${COMPOSE_KOMODO_IMAGE_TAG:-latest}
+    image: ghcr.io/moghtech/komodo-periphery:2-dev
     env_file:
       - ./komodo-stack.env
     volumes:
@@ -113,7 +104,7 @@ services:
         order: start-first
 
   periphery_vega:
-    image: ghcr.io/moghtech/komodo-periphery:${COMPOSE_KOMODO_IMAGE_TAG:-latest}
+    image: ghcr.io/moghtech/komodo-periphery:2-dev
     env_file:
       - ./komodo-stack.env
     volumes:
